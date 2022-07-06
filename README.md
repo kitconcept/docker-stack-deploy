@@ -1,4 +1,17 @@
-# Docker Stack Deploy Action
+<p align="center">
+  <a href="https://github.com/marketplace/actions/docker-stack-deploy-action">
+    <img alt="GitHub Pages Deploy Action Logo" width="200px" src="https://raw.githubusercontent.com/kitconcept/docker-stack-deploy/main/docs/icon.png">
+  </a>
+</p>
+
+<h1 align="center">
+  Docker Stack Deploy Action
+</h1>
+
+[![GitHub Actions Marketplace](https://img.shields.io/badge/action-marketplace-blue.svg?logo=github&color=orange)](https://github.com/marketplace/actions/docker-stack-deploy-action)
+[![Release version badge](https://img.shields.io/github/v/release/kitconcept/docker-stack-deploy)](https://github.com/kitconcept/docker-stack-deploy/release)
+![GitHub Repo stars](https://img.shields.io/github/stars/kitconcept/docker-stack-deploy?style=flat-square)
+[![license badge](https://img.shields.io/github/license/kitconcept/docker-stack-deploy)](./LICENSE)
 
 GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 
@@ -132,6 +145,7 @@ Please **DO NOT** commit to version branches directly. Even for the smallest and
 
 This repository also uses the `docker-stack-wait` script, available at [GitHub](https://github.com/sudo-bmitch/docker-stack-wait).
 
+The logo is based on [rocket icon](https://freeicons.io/seo/rocket-icon-24668#).
 ## License
 
-The project is licensed under the GPLv2.
+The project is licensed under [MIT License](./LICENSE)
