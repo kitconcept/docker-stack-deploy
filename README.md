@@ -1,4 +1,4 @@
-# Docker Stack Deploy
+# Docker Stack Deploy Action
 
 GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 

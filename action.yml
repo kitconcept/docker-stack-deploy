@@ -1,10 +1,10 @@
 
-name: 'Docker Stack Deploy'
+name: 'Docker Stack Deploy Action'
 description: 'Deploy a Docker stack on a Docker Swarm'
 author: 'kitconcept GmbH'
 branding:
-  icon: 'send'
-  color: 'blue'
+  icon: 'truck'
+  color: 'red'
 inputs:
   registry:
     description: 'Container registry to use'
