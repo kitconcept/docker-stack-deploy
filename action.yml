@@ -1,0 +1,62 @@
+
+name: 'Docker Stack Deploy'
+description: 'Deploy a Docker stack on a Docker Swarm'
+author: 'kitconcept GmbH'
+branding:
+  icon: 'send'
+  color: 'blue'
+inputs:
+  registry:
+    description: 'Container registry to use'
+    required: false
+    default: ""
+  username:
+    description: 'Container registry username'
+    required: false
+    default: ""
+  password:
+    description: 'Container registry password'
+    required: false
+    default: ""
+  remote_host:
+    description: 'Host running Docker Swarm'
+    required: true
+  remote_port:
+    description: 'SSH port on the host running Docker Swarm'
+    required: false
+    default: "22"
+  remote_user:
+    description: 'User to connect to remote host'
+    required: true
+  remote_private_key:
+    description: 'Private key used for ssh authentication'
+    required: true
+  deploy_timeout:
+    description: "Timeout for the deploy check (in seconds)"
+    required: false
+    default: "300"
+  stack_file:
+    description: "Path to the stack file to be used for deploy"
+    required: true
+  stack_name:
+    description: "Name of the stack to be deployed"
+    required: true
+  debug:
+    description: "Debug information"
+    required: false
+    default: "0"
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/kitconcept/docker-stack-deploy:latest'
+  env:
+    REGISTRY: ${{ inputs.registry }}
+    USERNAME: ${{ inputs.username }}
+    PASSWORD: ${{ inputs.password }}
+    REMOTE_HOST: ${{ inputs.remote_host }}
+    REMOTE_PORT: ${{ inputs.remote_port }}
+    REMOTE_USER: ${{ inputs.remote_user }}
+    REMOTE_PRIVATE_KEY: ${{ inputs.remote_private_key }}
+    DEPLOY_TIMEOUT: ${{ inputs.deploy_timeout }}
+    STACK_FILE: ${{ inputs.stack_file }}
+    STACK_NAME: ${{ inputs.stack_name }}
+    DEBUG: ${{ inputs.debug }}

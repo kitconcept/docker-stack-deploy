@@ -1,0 +1,7 @@
+.git
+.github
+action.yml
+Dockerfile
+docs
+Makefile
+README.md
