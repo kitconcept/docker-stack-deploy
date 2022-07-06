@@ -33,7 +33,11 @@ configure_ssh_host() {
 }
 
 connect_ssh() {
-  user=$(ssh "${SSH_VERBOSE}" -p "${REMOTE_PORT}" "${REMOTE_USER}@${REMOTE_HOST}" whoami)
+  cmd="ssh"
+  if [ "${SSH_VERBOSE}" != "" ]; then
+    cmd="ssh ${SSH_VERBOSE}"
+  fi
+  user=$(${cmd} -p "${REMOTE_PORT}" "${REMOTE_USER}@${REMOTE_HOST}" whoami)
   if [ "${user}" != "${REMOTE_USER}" ]; then
     exit 1;
   fi
