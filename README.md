@@ -11,7 +11,7 @@
 <div align="center">
 
 [![GitHub Actions Marketplace](https://img.shields.io/badge/action-marketplace-blue.svg?logo=github&color=orange)](https://github.com/marketplace/actions/docker-stack-deploy-action)
-[![Release version badge](https://img.shields.io/github/v/release/kitconcept/docker-stack-deploy)](https://github.com/kitconcept/docker-stack-deploy/release)
+[![Release version badge](https://img.shields.io/github/v/release/kitconcept/docker-stack-deploy)](https://github.com/kitconcept/docker-stack-deploy/releases)
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/kitconcept/docker-stack-deploy?style=flat-square)
 [![license badge](https://img.shields.io/github/license/kitconcept/docker-stack-deploy)](./LICENSE)
