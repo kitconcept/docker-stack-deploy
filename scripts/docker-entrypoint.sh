@@ -77,7 +77,7 @@ else
 fi
 
 if [[ -z "${DEPLOY_TIMEOUT}" ]]; then
-  export DEPLOY_TIMEOUT=300
+  export DEPLOY_TIMEOUT=600
 fi
 
 # CHECK REMOTE VARIABLES

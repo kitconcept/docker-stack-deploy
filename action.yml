@@ -34,7 +34,7 @@ inputs:
   deploy_timeout:
     description: "Timeout for the deploy check (in seconds)"
     required: false
-    default: "300"
+    default: "600"
   stack_file:
     description: "Path to the stack file to be used for deploy"
     required: true
