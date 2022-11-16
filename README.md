@@ -35,6 +35,7 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `deploy_timeout` | `DEPLOY_TIMEOUT` | Seconds, to wait until the deploy finishes | | **600** |
 | `stack_file` | `STACK_FILE` | Path to the stack file used in the deploy. | ✅ | |
 | `stack_name` | `STACK_NAME` | Name of the stack to be deployed. | ✅ | |
+| `stack_paran` | `STACK_PARAM` | Additional parameter (env var) to be passed to the stack. | | |
 | `debug` | `DEBUG` | Verbose logging | | **0** |
 
 
@@ -104,6 +105,7 @@ jobs:
           remote_private_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
           stack_file: "stacks/plone.yml"
           stack_name: "plone-live"
+          stack_param: "foo"
 ```
 
 ## Using the Docker Image

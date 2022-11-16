@@ -41,6 +41,10 @@ inputs:
   stack_name:
     description: "Name of the stack to be deployed"
     required: true
+  stack_param:
+    description: "Additional stack parameter value"
+    required: false
+    default: ""
   debug:
     description: "Debug information"
     required: false
@@ -59,4 +63,5 @@ runs:
     DEPLOY_TIMEOUT: ${{ inputs.deploy_timeout }}
     STACK_FILE: ${{ inputs.stack_file }}
     STACK_NAME: ${{ inputs.stack_name }}
+    STACK_PARAM: ${{ inputs.stack_param }}
     DEBUG: ${{ inputs.debug }}
