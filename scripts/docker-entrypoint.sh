@@ -29,10 +29,10 @@ configure_ssh_key() {
 }
 
 configure_env_file() {
-  echo "Environment Variables: Additional values"
   printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
   env_file_len=$(grep -v '^#' ${ENV_FILE_PATH}|grep -v '^$' -c)
   if [[ $env_file_len -gt 0 ]]; then
+    echo "Environment Variables: Additional values"
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars before: $(env|wc -l)"
     fi
@@ -42,10 +42,6 @@ configure_env_file() {
       echo "Environment vars after: $(env|wc -l)"
     fi
   fi
-
-  chmod 600 "${ENV_FILE_PATH}"
-  eval "$(ssh-agent)"
-  ssh-add "${SSH_KEY}"
 }
 
 configure_ssh_host() {
