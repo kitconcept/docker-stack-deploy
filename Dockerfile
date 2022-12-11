@@ -7,7 +7,7 @@ LABEL maintainer="kitconcept GmbH <info@kitconcept.com>" \
       org.opencontainers.image.source="https://github.com/kitconcept/docker-stack-deploy" \
       org.label-schema.docker.cmd="docker run -rm -v "${PWD}":/github/workspace ghcr.io/kitconcept/docker-stack-deploy"
 
-RUN apk add --no-cache openssh-client bash
+RUN apk add --no-cache openssh-client findutils bash
 
 COPY scripts/*.sh /
 
