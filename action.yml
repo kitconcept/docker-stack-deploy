@@ -45,6 +45,10 @@ inputs:
     description: "Additional stack parameter value"
     required: false
     default: ""
+  env_file:
+    description: "Additional environment variables in the format VAR_01=VALUE\nVAR_02=VALUE"
+    required: false
+    default: ""
   debug:
     description: "Debug information"
     required: false
@@ -64,4 +68,5 @@ runs:
     STACK_FILE: ${{ inputs.stack_file }}
     STACK_NAME: ${{ inputs.stack_name }}
     STACK_PARAM: ${{ inputs.stack_param }}
+    ENV_FILE: ${{ inputs.env_file }}
     DEBUG: ${{ inputs.debug }}

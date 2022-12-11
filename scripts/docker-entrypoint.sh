@@ -5,6 +5,7 @@ set -e
 SSH_DIR="/root/.ssh"
 SSH_KEY="${SSH_DIR}/docker"
 KNOWN_HOSTS="${SSH_DIR}/known_hosts"
+ENV_FILE_PATH="/root/.env"
 
 login() {
   echo "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin
@@ -23,6 +24,26 @@ configure_ssh_key() {
     printf '\n' >> "${SSH_KEY}";
   fi
   chmod 600 "${SSH_KEY}"
+  eval "$(ssh-agent)"
+  ssh-add "${SSH_KEY}"
+}
+
+configure_env_file() {
+  echo "Environment Variables: Additional values"
+  printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
+  env_file_len=$(grep -v '^#' ${ENV_FILE_PATH}|grep -v '^$' -c)
+  if [[ $env_file_len -gt 0 ]]; then
+    if [ "${DEBUG}" != "0" ]; then
+      echo "Environment vars before: $(env|wc -l)"
+    fi
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' ${ENV_FILE_PATH} | grep -v '^$' | xargs -d '\n')
+    if [ "${DEBUG}" != "0" ]; then
+      echo "Environment vars after: $(env|wc -l)"
+    fi
+  fi
+
+  chmod 600 "${ENV_FILE_PATH}"
   eval "$(ssh-agent)"
   ssh-add "${SSH_KEY}"
 }
@@ -54,6 +75,14 @@ check_deploy() {
 
 [ -z ${DEBUG+x} ] && export DEBUG="0"
 
+# ADDITIONAL ENV VARIABLES
+if [[ -z "${ENV_FILE}" ]]; then
+  export ENV_FILE=""
+else
+  configure_env_file;
+fi
+
+# SET DEBUG
 if [ "${DEBUG}" != "0" ]; then
   OUT=/dev/stdout;
   SSH_VERBOSE="-vvv"
@@ -112,6 +141,8 @@ if [[ -z "${STACK_NAME}" ]]; then
   exit 1
 fi
 
+
+# CONFIGURE SSH CLIENT
 if configure_ssh > $OUT 2>&1; then
   echo "SSH client: Configured"
 else
