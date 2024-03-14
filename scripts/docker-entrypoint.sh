@@ -66,7 +66,7 @@ deploy() {
 
 check_deploy() {
   echo "Deploy: Checking status"
-  /stack-wait.sh -t "${DEPLOY_TIMEOUT}" "${STACK_NAME}"
+  /stack-wait.sh -f label=deploy.wait=true -t "${DEPLOY_TIMEOUT}" "${STACK_NAME}"
 }
 
 [ -z ${DEBUG+x} ] && export DEBUG="0"
