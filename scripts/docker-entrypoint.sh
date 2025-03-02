@@ -36,8 +36,11 @@ configure_env_file() {
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars before: $(env|wc -l)"
     fi
-    # shellcheck disable=SC2046
-    export $(grep -v '^#' ${ENV_FILE_PATH} | grep -v '^$' | xargs -d '\n')
+    while IFS='=' read -r key value; do
+      # Remove optional surrounding quotes
+      value=$(echo "$value" | sed -E 's/^"(.*)"$/\1/')
+      export "$key=$value"
+    done < <(grep -vE '^#|^$' "${ENV_FILE_PATH}")
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars after: $(env|wc -l)"
     fi
