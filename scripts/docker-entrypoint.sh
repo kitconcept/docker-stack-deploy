@@ -29,15 +29,18 @@ configure_ssh_key() {
 }
 
 configure_env_file() {
-  printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
+  cat "$ENV_FILE" > "${ENV_FILE_PATH}"
   env_file_len=$(grep -v '^#' ${ENV_FILE_PATH}|grep -v '^$' -c)
   if [[ $env_file_len -gt 0 ]]; then
     echo "Environment Variables: Additional values"
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars before: $(env|wc -l)"
     fi
-    # shellcheck disable=SC2046
-    export $(grep -v '^#' ${ENV_FILE_PATH} | grep -v '^$' | xargs -d '\n')
+    while IFS='=' read -r key value; do
+      # Remove optional surrounding quotes
+      value=$(echo "$value" | sed -E 's/^"(.*)"$/\1/')
+      export "$key=$value"
+    done < <(grep -vE '^#|^$' "${ENV_FILE_PATH}")
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars after: $(env|wc -l)"
     fi
