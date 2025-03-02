@@ -29,7 +29,7 @@ configure_ssh_key() {
 }
 
 configure_env_file() {
-  printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
+  cat "$ENV_FILE" > "${ENV_FILE_PATH}"
   env_file_len=$(grep -v '^#' ${ENV_FILE_PATH}|grep -v '^$' -c)
   if [[ $env_file_len -gt 0 ]]; then
     echo "Environment Variables: Additional values"
