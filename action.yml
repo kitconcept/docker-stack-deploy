@@ -53,6 +53,9 @@ inputs:
     description: "Debug information"
     required: false
     default: "0"
+  scale_after:
+    description: "Service to scale after successful deploy (example: servicename=1)"
+    default: ""
 runs:
   using: 'docker'
   image: 'docker://ghcr.io/kitconcept/docker-stack-deploy:latest'
@@ -70,3 +73,4 @@ runs:
     STACK_PARAM: ${{ inputs.stack_param }}
     ENV_FILE: ${{ inputs.env_file }}
     DEBUG: ${{ inputs.debug }}
+    SCALE_AFTER: ${{ inputs.scale_after }}

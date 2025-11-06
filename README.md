@@ -38,6 +38,7 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `stack_param` | `STACK_PARAM` | Additional parameter (env var) to be passed to the stack. | | |
 | `env_file` | `ENV_FILE` | Additional environment variables to be passed to the stack. | | |
 | `debug` | `DEBUG` | Verbose logging | | **0** |
+| `scale_after` | `SCALE_AFTER` | Scale a service after a deployment has converged successfully. Example: servicename=1 | | |
 
 
 ## Using the GitHub Action
