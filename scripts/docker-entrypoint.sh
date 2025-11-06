@@ -69,6 +69,13 @@ check_deploy() {
   /stack-wait.sh -t "${DEPLOY_TIMEOUT}" "${STACK_NAME}"
 }
 
+scale_after() {
+  if [[ -n "$SCALE_AFTER" ]]; then
+    echo "Scaling services: $SCALE_AFTER"
+    docker service scale $SCALE_AFTER
+  fi
+}
+
 [ -z ${DEBUG+x} ] && export DEBUG="0"
 
 # ADDITIONAL ENV VARIABLES
@@ -182,3 +189,5 @@ else
   echo "Deploy: Failed"
   exit 1
 fi
+
+scale_after
