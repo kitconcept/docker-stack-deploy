@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Use root home folder
 SSH_DIR="/root/.ssh"
@@ -7,8 +7,33 @@ SSH_KEY="${SSH_DIR}/docker"
 KNOWN_HOSTS="${SSH_DIR}/known_hosts"
 ENV_FILE_PATH="/root/.env"
 
+log() { printf '%s\n' "$*" >&2; }
+
+
 login() {
-  echo "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin
+  # Mask token in GitHub Actions logs
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::add-mask::${PASSWORD}"
+  fi
+
+  # Avoid using a stale cached login (optional but very useful while debugging)
+  docker logout "${REGISTRY}" >/dev/null 2>&1 || true
+
+  log "Logging in to ${REGISTRY} as ${USERNAME} …"
+
+  # Capture stderr/stdout so we can print the real reason on failure
+  local login_out
+  if ! login_out="$(printf '%s' "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin 2>&1)"; then
+    log "ERROR: docker login failed"
+    log "${login_out}"
+    log "Docker config dir: ${DOCKER_CONFIG:-$HOME/.docker}"
+    return 1
+  fi
+
+  # Optional: print success output only in debug mode
+  if [ "${DEBUG_DOCKER_LOGIN:-0}" = "1" ]; then
+    log "docker login output: ${login_out}"
+  fi
 }
 
 configure_ssh() {
@@ -25,7 +50,7 @@ configure_ssh_key() {
   fi
   chmod 600 "${SSH_KEY}"
   eval "$(ssh-agent)"
-  ssh-add "${SSH_KEY}"
+  ssh-add "${SSH_KEY}"  
 }
 
 configure_env_file() {
