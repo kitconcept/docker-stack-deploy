@@ -6,6 +6,10 @@ branding:
   icon: 'truck'
   color: 'red'
 inputs:
+  debug_docker_login:
+    description: "Set to 1 to print docker login diagnostics"
+    required: false
+    default: "0"
   registry:
     description: 'Container registry to use'
     required: false
