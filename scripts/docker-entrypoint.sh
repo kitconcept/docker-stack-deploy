@@ -90,6 +90,7 @@ if [ "${DEBUG}" != "0" ]; then
   OUT=/dev/stdout;
   SSH_VERBOSE="-vvv"
   echo "Verbose logging"
+  echo " - $(docker --version)"
 else
   OUT=/dev/null;
   SSH_VERBOSE=""
