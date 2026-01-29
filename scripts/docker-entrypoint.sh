@@ -96,7 +96,7 @@ else
 fi
 
 # PROCEED WITH LOGIN
-if [ -z "${USERNAME+x}" ] || [ -z "${PASSWORD+x}" ]; then
+if [ -z "${USERNAME}" ] || [ -z "${PASSWORD}" ]; then
   echo "Container Registry: No authentication provided"
 else
   [ -z ${REGISTRY+x} ] && export REGISTRY=""
