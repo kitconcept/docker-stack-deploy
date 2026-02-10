@@ -64,7 +64,7 @@ inputs:
     default: ""
 runs:
   using: 'docker'
-  image: 'docker://ghcr.io/kitconcept/docker-stack-deploy:latest'
+  image: 'docker://ghcr.io/kitconcept/docker-stack-deploy:1.4.0'
   env:
     REGISTRY: ${{ inputs.registry }}
     USERNAME: ${{ inputs.username }}
