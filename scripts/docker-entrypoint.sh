@@ -7,6 +7,10 @@ SSH_KEY="${SSH_DIR}/docker"
 KNOWN_HOSTS="${SSH_DIR}/known_hosts"
 ENV_FILE_PATH="/root/.env"
 
+OPTS=("--with-registry-auth" "--resolve-image=${RESOLVE_IMAGE:-always}")
+[ "${PRUNE:-0}" = "1" ] && OPTS+=("--prune")
+
+
 login() {
   echo "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin
 }
@@ -61,7 +65,7 @@ connect_ssh() {
 }
 
 deploy() {
-  docker stack deploy --with-registry-auth -c "${STACK_FILE}" "${STACK_NAME}"
+  docker stack deploy "${OPTS[@]}" -c "${STACK_FILE}" "${STACK_NAME}"
 }
 
 check_deploy() {

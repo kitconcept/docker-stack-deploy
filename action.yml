@@ -35,6 +35,12 @@ inputs:
     description: "Timeout for the deploy check (in seconds)"
     required: false
     default: "600"
+  resolve_image:
+    description: "Query the registry to resolve image digest and supported platforms before deploy (Supported values: always, changed, never)"
+    default: "always"
+  prune:
+    description: "Prune services that are not defined in the stack file (1 to enable, 0 to disable)"
+    default: "0"
   stack_file:
     description: "Path to the stack file to be used for deploy"
     required: true
@@ -68,6 +74,8 @@ runs:
     REMOTE_USER: ${{ inputs.remote_user }}
     REMOTE_PRIVATE_KEY: ${{ inputs.remote_private_key }}
     DEPLOY_TIMEOUT: ${{ inputs.deploy_timeout }}
+    RESOLVE_IMAGE: ${{ inputs.resolve_image }}
+    PRUNE: ${{ inputs.prune }}
     STACK_FILE: ${{ inputs.stack_file }}
     STACK_NAME: ${{ inputs.stack_name }}
     STACK_PARAM: ${{ inputs.stack_param }}
