@@ -3,10 +3,10 @@ name: Release Image
 on:
   workflow_dispatch:
   push:
-    branches:
-      - "*"
-    tags:
-      - "v*.*.*"
+    # branches:
+    #   - "main"
+    # tags:
+    #   - "v*.*.*"
 
 env:
   # TODO Remove before create pr
