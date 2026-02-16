@@ -1,16 +1,14 @@
 name: Release Image
 
 on:
-  workflow_dispatch:
   push:
-    # branches:
-    #   - "main"
-    # tags:
-    #   - "v*.*.*"
+    branches:
+      - 'main'
+    tags:
+      - 'v*.*.*'
 
 env:
-  # TODO Remove before create pr
-  IMAGE_NAME: ghcr.io/educorg/docker-stack-deploy
+  IMAGE_NAME: ghcr.io/kitconcept/docker-stack-deploy
 
 jobs:
   release:
