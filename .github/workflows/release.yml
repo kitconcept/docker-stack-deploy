@@ -11,12 +11,14 @@ env:
   IMAGE_NAME: ghcr.io/kitconcept/docker-stack-deploy
 
 jobs:
+
   release:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         docker-version: [28, 29]
     steps:
+
       - name: Checkout
         uses: actions/checkout@v5
 
