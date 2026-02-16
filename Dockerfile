@@ -1,4 +1,6 @@
-FROM docker:29.1.3-cli-alpine3.23
+ARG DOCKER_IMAGE_TAG=29-cli
+
+FROM docker:${DOCKER_IMAGE_TAG}
 
 LABEL maintainer="kitconcept GmbH <info@kitconcept.com>" \
       org.label-schema.name="docker-stack-deploy" \
