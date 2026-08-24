@@ -94,11 +94,11 @@ else
   SSH_VERBOSE=""
 fi
 
-# PROCEED WITH LOGIN
-if [ -z "${USERNAME+x}" ] || [ -z "${PASSWORD+x}" ]; then
+# PROCEED WITH LOGIN (empty defaults from action.yml must not trigger login)
+if [ -z "${USERNAME}" ] || [ -z "${PASSWORD}" ]; then
   echo "Container Registry: No authentication provided"
 else
-  [ -z ${REGISTRY+x} ] && export REGISTRY=""
+  [ -z "${REGISTRY}" ] && export REGISTRY=""
   if login > /dev/null 2>&1; then
     echo "Container Registry: Logged in ${REGISTRY} as ${USERNAME}"
   else
