@@ -1,4 +1,4 @@
-FROM docker:29-cli
+FROM docker:29.1.3-cli-alpine3.23
 
 LABEL maintainer="Erik Petrosyan <dev.erikpetrosyan@gmail.com>" \
       org.label-schema.name="docker-stack-deploy" \

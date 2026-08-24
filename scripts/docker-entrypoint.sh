@@ -7,6 +7,14 @@ SSH_KEY="${SSH_DIR}/docker"
 KNOWN_HOSTS="${SSH_DIR}/known_hosts"
 ENV_FILE_PATH="/root/.env"
 
+OPTS=("--with-registry-auth" "--resolve-image=${RESOLVE_IMAGE:-always}")
+[ "${PRUNE:-0}" = "1" ] && OPTS+=("--prune")
+# Optional extra CLI args from stack_param (space-separated), e.g. "--detach=false"
+if [[ -n "${STACK_PARAM}" ]]; then
+  # shellcheck disable=SC2206
+  OPTS+=(${STACK_PARAM})
+fi
+
 login() {
   echo "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin
 }
@@ -61,11 +69,12 @@ connect_ssh() {
 }
 
 deploy() {
-  if [[ -n "${STACK_PARAM}" ]]; then
-    docker stack deploy --with-registry-auth "${STACK_PARAM}" -c "${STACK_FILE}" "${STACK_NAME}"
-  else
-    docker stack deploy --with-registry-auth -c "${STACK_FILE}" "${STACK_NAME}"
-  fi
+  docker stack deploy "${OPTS[@]}" -c "${STACK_FILE}" "${STACK_NAME}"
+}
+
+check_deploy() {
+  echo "Deploy: Checking status"
+  /stack-wait.sh -t "${DEPLOY_TIMEOUT}" "${STACK_NAME}"
 }
 
 scale_after() {
@@ -89,12 +98,13 @@ if [ "${DEBUG}" != "0" ]; then
   OUT=/dev/stdout;
   SSH_VERBOSE="-vvv"
   echo "Verbose logging"
+  echo " - $(docker --version)"
 else
   OUT=/dev/null;
   SSH_VERBOSE=""
 fi
 
-# PROCEED WITH LOGIN (empty defaults from action.yml must not trigger login)
+# PROCEED WITH LOGIN (empty action.yml defaults must not trigger login)
 if [ -z "${USERNAME}" ] || [ -z "${PASSWORD}" ]; then
   echo "Container Registry: No authentication provided"
 else
@@ -179,6 +189,13 @@ if deploy > $OUT; then
   echo "Deploy: Updated services"
 else
   echo "Deploy: Failed to deploy ${STACK_NAME} from file ${STACK_FILE}"
+  exit 1
+fi
+
+if check_deploy; then
+  echo "Deploy: Completed"
+else
+  echo "Deploy: Failed"
   exit 1
 fi
 

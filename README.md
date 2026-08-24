@@ -33,6 +33,8 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `remote_user` | `REMOTE_USER` | User with SSH and Docker privileges on the machine running the Docker Swarm manager node. | ✅ | |
 | `remote_private_key` | `REMOTE_PRIVATE_KEY` | Private key used for ssh authentication. | ✅ | |
 | `deploy_timeout` | `DEPLOY_TIMEOUT` | Seconds, to wait until the deploy finishes | | **600** |
+| `resolve_image` | `RESOLVE_IMAGE` | Query the registry to resolve image digest and supported platforms before deploy | | **always** |
+| `prune` | `PRUNE` | Prune services that are not defined in the stack file | | **0** |
 | `stack_file` | `STACK_FILE` | Path to the stack file used in the deploy. | ✅ | |
 | `stack_name` | `STACK_NAME` | Name of the stack to be deployed. | ✅ | |
 | `stack_param` | `STACK_PARAM` | Additional parameter (env var) to be passed to the stack. | | |
