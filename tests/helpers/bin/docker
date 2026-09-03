@@ -131,6 +131,17 @@ case "${1:-}" in
             *'.Spec.Name'*)
               lookup "${target}" 2
               ;;
+            *'.Spec.Mode.Replicated'*)
+              # Replicas the stack file asks for. Fixtures may state it in a
+              # fifth field when it differs from what `service ls` reports --
+              # that difference is what issue #19 is about. Otherwise it is
+              # just the target from the replicas field.
+              spec=$(lookup "${target}" 5)
+              if [ -z "${spec}" ]; then
+                spec=$(lookup "${target}" 4 | cut -d' ' -f1 | cut -d/ -f2)
+              fi
+              printf '%s\n' "${spec}"
+              ;;
             *'.UpdateStatus'*)
               lookup "${target}" 3
               ;;

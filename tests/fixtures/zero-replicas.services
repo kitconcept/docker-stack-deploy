@@ -1,6 +1,8 @@
 # Issue #19: a service the stack file declares with `replicas: 0`, which an
 # external scheduler (swarm-cronjob) has since scaled to a target of 1.
-# Indistinguishable from issue #13 at the replicas field alone -- there is no
-# completion suffix here to disambiguate a finished run from a failed start.
-svc_dbpack|demo_dbpack|deployed|0/1
+#
+# Fifth field is the spec replicas, i.e. what the stack file asks for. It
+# diverges from the target in the replicas field here on purpose: that
+# divergence is the bug, and reading the spec is what resolves it.
+svc_dbpack|demo_dbpack|deployed|0/1|0
 svc_backend|demo_backend|deployed|1/1

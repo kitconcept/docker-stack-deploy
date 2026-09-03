@@ -39,6 +39,7 @@ check_timeout() {
     cutoff_epoc=$((start_epoc + opt_t - opt_s))
     if [ "$cur_epoc" -gt "$cutoff_epoc" ]; then
       echo "Error: Timeout exceeded"
+      print_stack_state
       print_service_logs
       exit 1
     fi
@@ -73,6 +74,14 @@ service_state() {
     # shellcheck disable=SC2086
     eval cache_${service_safe}=\"\$state\"
   fi
+}
+print_stack_state() {
+  # On failure the per-service state log only shows what changed, so the state
+  # each service was left in has to be reconstructed by reading back through
+  # it. Dump the task list instead: it names the service that stalled and
+  # carries the error column.
+  echo "Stack state at failure:"
+  docker stack ps --no-trunc "${stack_name}" || true
 }
 print_service_logs() {
   if [ "$opt_p" != "0" ]; then
@@ -130,10 +139,41 @@ while [ "$stack_done" != "1" ]; do
 
     # identify/report current state
     if [ "$service_done" != "2" ]; then
-      replicas=$(docker service ls --format '{{.Replicas}}' --filter "id=$service_id" | cut -d' ' -f1)
+      # The whole field, which is "1/1" for a plain service but carries a
+      # completion count for a job: "0/1 (1/1 completed)".
+      replicas_full=$(docker service ls --format '{{.Replicas}}' --filter "id=$service_id")
+      replicas=$(echo "$replicas_full" | cut -d' ' -f1)
       current=$(echo "$replicas" | cut -d/ -f1)
       target=$(echo "$replicas" | cut -d/ -f2)
-      if [ "$current" != "$target" ]; then
+
+      # Runs finished and runs wanted, for a `mode: replicated-job` service.
+      # Empty for every other mode, which is what selects the branch below.
+      job_done=$(echo "$replicas_full" | sed -n 's/.*(\([0-9]*\)\/[0-9]* completed).*/\1/p')
+      job_total=$(echo "$replicas_full" | sed -n 's/.*([0-9]*\/\([0-9]*\) completed).*/\1/p')
+
+      # Replicas the stack file asks for, which is not always what
+      # `docker service ls` reports as the target yet: `docker stack deploy`
+      # returns before the new spec has been applied, and an external
+      # scheduler may have scaled the service in the meantime. Re-read every
+      # poll so a stale target corrects itself.
+      spec_replicas=$(docker service inspect \
+        --format '{{if .Spec.Mode.Replicated}}{{.Spec.Mode.Replicated.Replicas}}{{end}}' \
+        "$service_id" 2>/dev/null || echo "")
+
+      if [ -n "$job_total" ]; then
+        # A job is finished when every requested run has completed. Its
+        # running count goes back to 0 and must not be read as "not started".
+        if [ "$job_done" = "$job_total" ]; then
+          state="job_completed"
+        else
+          service_done=0
+          state="job_running $job_done/$job_total"
+        fi
+      elif [ "$spec_replicas" = "0" ]; then
+        # Deliberately stopped by the stack file, so there is nothing to wait
+        # for even if the target has not caught up yet.
+        state="scaled_to_zero"
+      elif [ "$current" != "$target" ]; then
         # actively replicating service
         service_done=0
         state="replicating $replicas"
@@ -142,9 +182,11 @@ while [ "$stack_done" != "1" ]; do
     service_state "$service" "$state"
 
     # check for states that indicate an update is done
+    # Keep this list in sync with the states assigned above: a state that is
+    # settled but missing here falls into the catch-all and waits forever.
     if [ "$service_done" = "1" ]; then
       case "$state" in
-        deployed|completed|rollback_completed)
+        deployed|completed|rollback_completed|job_completed|scaled_to_zero)
           service_done=1
           ;;
         *)
@@ -165,6 +207,7 @@ while [ "$stack_done" != "1" ]; do
   done
   if [ "$stack_done" = "2" ]; then
     echo "Error: This deployment will not complete"
+    print_stack_state
     print_service_logs
     exit 1
   fi

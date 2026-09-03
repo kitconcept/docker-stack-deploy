@@ -109,28 +109,51 @@ setup() {
   [[ "$output" == *"[opts] stack_name"* ]]
 }
 
-# --- Known bugs, to be un-skipped by the fixes -------------------------------
+# --- Services that are not meant to be running (issues #13, #19) -------------------------------
 
-@test "issue #13: a completed replicated-job counts as converged" {
-  skip "https://github.com/kitconcept/docker-stack-deploy/issues/13 -- the '(1/1 completed)' suffix is discarded, so current(0) != target(1) forever"
+@test "a completed replicated-job counts as converged (issue #13)" {
   setup_stub replicated-job
   run "${STACK_WAIT}" -s 1 -t 5 demo
   [ "$status" -eq 0 ]
   [[ "$output" != *"Timeout exceeded"* ]]
 }
 
-@test "issue #19: a service scaled to zero does not block the deploy" {
-  skip "https://github.com/kitconcept/docker-stack-deploy/issues/19 -- target is 1 because an external scheduler scaled it, so the wait never settles"
+@test "a service the stack file scales to zero does not block (issue #19)" {
   setup_stub zero-replicas
   run "${STACK_WAIT}" -s 1 -t 5 demo
   [ "$status" -eq 0 ]
   [[ "$output" != *"Timeout exceeded"* ]]
 }
 
-@test "issue #19: the final stack state is logged on timeout" {
-  skip "https://github.com/kitconcept/docker-stack-deploy/issues/19 -- 'docker stack ps' diagnostics are not implemented yet"
+@test "the final stack state is logged on timeout (issue #19)" {
   setup_stub stuck
   run "${STACK_WAIT}" -s 1 -t 3 demo
   [ "$status" -eq 1 ]
+  [[ "$(stub_calls)" == *"stack ps"* ]]
+}
+
+@test "a still-running replicated-job is waited for (issue #13)" {
+  setup_stub running-job
+  run "${STACK_WAIT}" -s 1 -t 20 demo
+  [ "$status" -eq 0 ]
+  # Reported as running while incomplete, then settled once it finishes.
+  [[ "$output" == *"demo_migrate state: job_running 0/1"* ]]
+  [[ "$output" == *"demo_migrate state: job_completed"* ]]
+}
+
+@test "a genuinely failed service still times out (issue #19 regression guard)" {
+  # Same 0/1 as the zero-replica case, but the stack file wants 1 replica.
+  # This must NOT be swallowed by the scaled_to_zero shortcut.
+  setup_stub failed-start
+  run "${STACK_WAIT}" -s 1 -t 3 demo
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Timeout exceeded"* ]]
+}
+
+@test "the final stack state is logged when a deployment cannot complete" {
+  setup_stub paused
+  run "${STACK_WAIT}" -s 1 -t 10 demo
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Stack state at failure:"* ]]
   [[ "$(stub_calls)" == *"stack ps"* ]]
 }

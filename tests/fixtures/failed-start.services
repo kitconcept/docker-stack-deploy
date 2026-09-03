@@ -1,0 +1,4 @@
+# Looks identical to the zero-replica case in the replicas field, but the
+# stack file really does want 1 replica (fifth field), so this is a service
+# that failed to start and must still be reported as a failure.
+svc_backend|demo_backend|deployed|0/1|1
