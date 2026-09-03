@@ -34,14 +34,31 @@ configure_ssh_key() {
 
 configure_env_file() {
   printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
-  env_file_len=$(grep -v '^#' ${ENV_FILE_PATH}|grep -v '^$' -c)
-  if [[ $env_file_len -gt 0 ]]; then
+  env_file_len=$(grep -cv -e '^#' -e '^$' "${ENV_FILE_PATH}" || true)
+  if [[ ${env_file_len} -gt 0 ]]; then
     echo "Environment Variables: Additional values"
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars before: $(env|wc -l)"
     fi
-    # shellcheck disable=SC2046
-    export $(grep -v '^#' ${ENV_FILE_PATH} | grep -v '^$' | xargs -d '\n')
+    # Read one line at a time and hand export a single quoted argument, so a
+    # value containing spaces survives. Passing the whole file through an
+    # unquoted $(...) word-split it before export ever ran.
+    #
+    # Values are taken verbatim, matching `docker --env-file`: quotes in the
+    # file are part of the value, not delimiters around it.
+    #
+    # ENV_FILE has no trailing newline, so the `-n` test is what keeps the
+    # final line from being dropped by read's non-zero exit.
+    while IFS= read -r line || [ -n "${line}" ]; do
+      case "${line}" in
+        ''|\#*) continue ;;
+      esac
+      if [[ ! "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+        echo "Environment Variables: '${line}' is not in NAME=VALUE format"
+        exit 1
+      fi
+      export "${line?}"
+    done < "${ENV_FILE_PATH}"
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars after: $(env|wc -l)"
     fi

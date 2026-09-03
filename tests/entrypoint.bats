@@ -151,18 +151,58 @@ export_from_env_file() {
   [ "$output" = "key=value" ]
 }
 
-@test "issue #21: env_file exports a value containing spaces" {
-  skip "https://github.com/kitconcept/docker-stack-deploy/issues/21 -- the unquoted \$(...) word-splits the value before export runs"
+@test "env_file exports a value containing spaces (issue #21)" {
   export_from_env_file 'SOLR_JAVA_MEM=-Xms1536m -Xmx1536m' SOLR_JAVA_MEM
   [ "$status" -eq 0 ]
   [ "$output" = "-Xms1536m -Xmx1536m" ]
 }
 
-@test "issue #21: quotes in an env_file value are kept verbatim" {
-  skip "https://github.com/kitconcept/docker-stack-deploy/issues/21 -- pending the parser rewrite; we match 'docker --env-file' and do not strip quotes"
+@test "env_file keeps quotes in a value verbatim (issue #21)" {
   export_from_env_file 'GREETING="hello world"' GREETING
   [ "$status" -eq 0 ]
   [ "$output" = '"hello world"' ]
+}
+
+@test "env_file preserves several space-bearing values in one file (issue #21)" {
+  export_from_env_file $'JAVA_OPTS=-Xms1g -Xmx2g\nDB_USER=plone' JAVA_OPTS
+  [ "$status" -eq 0 ]
+  [ "$output" = "-Xms1g -Xmx2g" ]
+}
+
+@test "env_file still exports later keys after a space-bearing value" {
+  export_from_env_file $'JAVA_OPTS=-Xms1g -Xmx2g\nDB_USER=plone' DB_USER
+  [ "$status" -eq 0 ]
+  [ "$output" = "plone" ]
+}
+
+@test "env_file preserves a trailing space in a value" {
+  export_from_env_file 'GREETING=hello ' GREETING
+  [ "$status" -eq 0 ]
+  [ "$output" = "hello " ]
+}
+
+@test "env_file rejects a line that is not NAME=VALUE" {
+  # Issue #3 reported passing a path (".env") and getting an opaque
+  # "not a valid identifier" error from export. Fail with a clear message.
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" ENV_FILE=".env" \
+    bash -c "
+      source '${ENTRYPOINT}'
+      ENV_FILE_PATH=\"\${HOME}/.env\"
+      configure_env_file
+    "
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"'.env' is not in NAME=VALUE format"* ]]
+}
+
+@test "env_file rejects a name with a hyphen" {
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" ENV_FILE="MY-VAR=1" \
+    bash -c "
+      source '${ENTRYPOINT}'
+      ENV_FILE_PATH=\"\${HOME}/.env\"
+      configure_env_file
+    "
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"is not in NAME=VALUE format"* ]]
 }
 
 # --- scale_after --------------------------------------------------------------
