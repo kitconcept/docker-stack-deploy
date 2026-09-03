@@ -11,6 +11,14 @@ MAKEFLAGS+=--no-builtin-rules
 BASE_NAME=docker-stack-deploy
 IMAGE_NAME=ghcr.io/kitconcept/$(BASE_NAME)
 
+# Images used by the test suite, never pushed.
+TEST_IMAGE=$(IMAGE_NAME):test
+TEST_RUNNER_IMAGE=$(IMAGE_NAME):test-runner
+SHELLCHECK_IMAGE=koalaman/shellcheck:stable
+
+# Everything shellcheck should look at.
+SHELL_SOURCES=scripts/docker-entrypoint.sh scripts/stack-wait.sh tests/helpers/bin/docker
+
 # We like colors
 # From: https://coderwall.com/p/izxssa/colored-makefile-for-golang-projects
 RED=`tput setaf 1`
@@ -35,6 +43,19 @@ help: # This help message
 build-image:  # Build Docker Image
 	@echo "Building $(IMAGE_NAME)"
 	docker build . -t $(IMAGE_NAME)
+
+.PHONY: lint
+lint:  # Lint the shell scripts with shellcheck
+	docker run --rm -v "$(PWD)":/code -w /code $(SHELLCHECK_IMAGE) $(SHELL_SOURCES)
+
+.PHONY: build-test-image
+build-test-image:  # Build the bats test runner image
+	docker build . -t $(TEST_IMAGE)
+	docker build . -f Dockerfile.test --build-arg BASE_IMAGE=$(TEST_IMAGE) -t $(TEST_RUNNER_IMAGE)
+
+.PHONY: test
+test: build-test-image  # Run the bats test suite
+	docker run --rm -v "$(PWD)":/code -w /code $(TEST_RUNNER_IMAGE) tests/
 
 create-tag: # Create a new tag using git
 	@test -n "$(VERSION)"

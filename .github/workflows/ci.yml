@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  lint:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Lint shell scripts
+        run: make lint
+
+  test:
+    name: Bats
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Builds the action image, then the test runner on top of it, so the
+      # suite runs against the same environment the action ships. This also
+      # means a broken Dockerfile fails here instead of at release time.
+      - name: Run test suite
+        run: make test

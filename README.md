@@ -201,6 +201,29 @@ Please **DO NOT** commit to version branches directly. Even for the smallest and
 
 **ALWAYS** open a pull request and ask somebody else to merge your code. **NEVER** merge it yourself.
 
+### Development
+
+Both commands need Docker, and nothing else — there is no local toolchain to install.
+
+```shell
+make lint   # shellcheck the shell scripts
+make test   # run the bats suite
+```
+
+`make test` builds the action image and then builds the test runner on top of
+it, so the suite runs in the same environment the action ships. That matters:
+the scripts rely on GNU `xargs` from `findutils`, and against the busybox
+`xargs` in a plain Alpine image the tests fail for reasons that have nothing to
+do with the code.
+
+Tests live in `tests/` and use a fake `docker` CLI (`tests/helpers/bin/docker`)
+that replays a scenario from `tests/fixtures/*.services`, so no Swarm is
+needed. Each fixture describes one poll of the wait loop per section.
+
+Tests that document a currently open bug call `skip` with a link to the issue.
+They are written to assert the *desired* behaviour, so fixing the bug means
+deleting the `skip` line rather than writing a new test.
+
 
 ## Credits
 

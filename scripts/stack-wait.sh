@@ -1,8 +1,12 @@
 #!/bin/sh
 
-# By: Brandon Mitchell <public@bmitch.net>
+# Originally by: Brandon Mitchell <public@bmitch.net>
 # License: MIT
-# Source repo: https://github.com/sudo-bmitch/docker-stack-wait
+# Upstream repo: https://github.com/sudo-bmitch/docker-stack-wait
+#
+# Forked into this repository and maintained here. Changes are not
+# automatically taken from upstream; see tests/stack-wait.bats for the
+# behaviour this fork is expected to preserve.
 
 set -e
 trap "{ exit 1; }" TERM INT
@@ -14,7 +18,7 @@ opt_t=3600
 start_epoc=$(date +%s)
 
 usage() {
-  echo "$(basename $0) [opts] stack_name"
+  echo "$(basename "$0") [opts] stack_name"
   echo "  -f filter: only wait for services matching filter, may be passed multiple"
   echo "             times, see docker stack services for the filter syntax"
   echo "  -h:        this help message"
@@ -32,7 +36,7 @@ check_timeout() {
   # next sleep completes
   if [ "$opt_t" -gt 0 ]; then
     cur_epoc=$(date +%s)
-    cutoff_epoc=$(expr ${start_epoc} + $opt_t - $opt_s)
+    cutoff_epoc=$((start_epoc + opt_t - opt_s))
     if [ "$cur_epoc" -gt "$cutoff_epoc" ]; then
       echo "Error: Timeout exceeded"
       print_service_logs
@@ -46,8 +50,12 @@ get_service_ids() {
     for name in $opt_n; do
       service_list="${service_list:+${service_list} }${stack_name}_${name}"
     done
+    # Unquoted on purpose: service_list is a space-separated list of names.
+    # shellcheck disable=SC2086
     docker service inspect --format '{{.ID}}' ${service_list}
   else
+    # Unquoted on purpose: opt_f accumulates repeated "-f filter" pairs.
+    # shellcheck disable=SC2086
     docker stack services ${opt_f} -q "${stack_name}"
   fi
 }
@@ -57,8 +65,12 @@ service_state() {
   # strip any invalid chars from service name for caching state
   service_safe=$(echo "$service" | sed 's/[^A-Za-z0-9_]/_/g')
   state=$2
+  # Unquoted on purpose in both evals: service_safe is the sanitised service
+  # name spliced into a variable name, not a value.
+  # shellcheck disable=SC2086
   if eval [ \"\$cache_${service_safe}\" != \"\$state\" ]; then
     echo "Service $service state: $state"
+    # shellcheck disable=SC2086
     eval cache_${service_safe}=\"\$state\"
   fi
 }
@@ -66,7 +78,7 @@ print_service_logs() {
   if [ "$opt_p" != "0" ]; then
     service_ids=$(get_service_ids)
     for service_id in ${service_ids}; do
-      docker service logs --tail $opt_p "$service_id"
+      docker service logs --tail "$opt_p" "$service_id"
     done
   fi
 }
@@ -80,11 +92,12 @@ while getopts 'f:hn:p:rs:t:' opt; do
     r) opt_r=1;;
     s) opt_s="$OPTARG";;
     t) opt_t="$OPTARG";;
+    *) usage;;
   esac
 done
-shift $(expr $OPTIND - 1)
+shift $((OPTIND - 1))
 
-if [ $# -ne 1 -o "$opt_h" = "1" -o "$opt_s" -le "0" ]; then
+if [ $# -ne 1 ] || [ "$opt_h" = "1" ] || [ "$opt_s" -le "0" ]; then
   usage
 fi
 
@@ -145,7 +158,7 @@ while [ "$stack_done" != "1" ]; do
     if [ "$service_done" = "2" ]; then
       # error condition
       stack_done=2
-    elif [ "$service_done" = "0" -a "$stack_done" = "1" ]; then
+    elif [ "$service_done" = "0" ] && [ "$stack_done" = "1" ]; then
       # only go to an updating state if not in an error state
       stack_done=0
     fi

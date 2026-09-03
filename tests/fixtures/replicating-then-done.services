@@ -1,0 +1,7 @@
+# Round 1: frontend is still scaling up.
+svc_backend|demo_backend|deployed|1/1
+svc_frontend|demo_frontend|updating|1/3
+---
+# Round 2: it converged.
+svc_backend|demo_backend|deployed|1/1
+svc_frontend|demo_frontend|completed|3/3

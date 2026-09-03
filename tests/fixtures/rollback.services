@@ -1,0 +1,2 @@
+# The update failed and swarm rolled it back.
+svc_backend|demo_backend|rollback_completed|1/1

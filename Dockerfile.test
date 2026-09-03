@@ -1,0 +1,14 @@
+# Test runner image.
+#
+# It is built FROM the action image on purpose: the scripts depend on what that
+# image provides (bash, and GNU xargs from findutils rather than the busybox
+# one), so the suite has to run in the same environment the action ships.
+ARG BASE_IMAGE=ghcr.io/kitconcept/docker-stack-deploy:test
+FROM ${BASE_IMAGE}
+
+RUN apk add --no-cache bats
+
+WORKDIR /code
+
+ENTRYPOINT [ "bats" ]
+CMD [ "tests/" ]

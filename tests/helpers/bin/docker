@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+#
+# Fake `docker` CLI used by the test suite.
+#
+# It answers only the handful of invocations that scripts/ actually make, and
+# reads the answers from a scenario fixture instead of a real Swarm.
+#
+# Scenario format (tests/fixtures/*.services) -- one "round" of polling per
+# section, sections separated by a line containing exactly `---`:
+#
+#     service_id|service_name|update_state|replicas
+#     ---
+#     service_id|service_name|update_state|replicas
+#
+# Blank lines and `#` comments are ignored. `docker stack services` advances to
+# the next round on every call, which is exactly once per poll of the wait
+# loop; the last section repeats forever so a scenario can settle or hang.
+#
+# Every invocation is appended to $DSD_STUB_DIR/calls.log so tests can assert
+# on what the script under test actually asked docker to do.
+
+set -euo pipefail
+
+: "${DSD_STUB_DIR:?DSD_STUB_DIR must be set by the test}"
+: "${DSD_STUB_SCENARIO:=}"
+
+mkdir -p "${DSD_STUB_DIR}"
+printf '%s\n' "$*" >> "${DSD_STUB_DIR}/calls.log"
+
+round_file="${DSD_STUB_DIR}/round"
+
+section_count() {
+  awk 'BEGIN { s = 1 } /^---$/ { s++ } END { print s }' "${DSD_STUB_SCENARIO}"
+}
+
+# Emit the data rows of section $1, ignoring blanks and comments.
+section_rows() {
+  awk -v want="$1" '
+    BEGIN { s = 1 }
+    /^---$/ { s++; next }
+    s == want && NF && $0 !~ /^[[:space:]]*#/ { print }
+  ' "${DSD_STUB_SCENARIO}"
+}
+
+current_round() {
+  if [ -f "${round_file}" ]; then cat "${round_file}"; else echo 1; fi
+}
+
+# Advance the round, clamped to the last section so it repeats forever.
+advance_round() {
+  local now total
+  now=$(current_round)
+  total=$(section_count)
+  if [ "${now}" -lt "${total}" ]; then
+    echo $((now + 1)) > "${round_file}"
+  else
+    echo "${now}" > "${round_file}"
+  fi
+}
+
+# Look up field $2 (1-indexed, pipe-separated) of the row whose id is $1.
+lookup() {
+  section_rows "$(current_round)" | awk -F'|' -v id="$1" -v f="$2" '$1 == id { print $f; exit }'
+}
+
+case "${1:-}" in
+  --version)
+    echo "Docker version 29.1.3, build stub"
+    ;;
+
+  login)
+    # Consume the password on stdin so the caller's pipe does not break.
+    cat > /dev/null
+    if [ "${DSD_STUB_LOGIN_FAILS:-0}" = "1" ]; then
+      echo "stub: login failed" >&2
+      exit 1
+    fi
+    echo "Login Succeeded"
+    ;;
+
+  stack)
+    case "${2:-}" in
+      services)
+        # `docker stack services [-f filter] -q <stack>` -- one call per poll.
+        # Step to the next round *before* serving it, so the service inspect
+        # calls that follow in the same poll observe the same round.
+        if [ -f "${round_file}" ]; then
+          advance_round
+        else
+          echo 1 > "${round_file}"
+        fi
+        ids=$(section_rows "$(current_round)" | awk -F'|' '{ print $1 }')
+        if [ -n "${ids}" ]; then
+          printf '%s\n' "${ids}"
+        fi
+        ;;
+      deploy)
+        echo "stub: deployed"
+        ;;
+      ps)
+        # Used by the failure diagnostics (issue #19).
+        printf 'ID  NAME  IMAGE  NODE  DESIRED STATE  CURRENT STATE\n'
+        section_rows "$(current_round)" | awk -F'|' '{ print $1 "  " $2 "  img  node  Running  Running" }'
+        ;;
+      *)
+        echo "stub: unhandled 'docker stack ${2:-}'" >&2
+        exit 64
+        ;;
+    esac
+    ;;
+
+  service)
+    case "${2:-}" in
+      inspect)
+        # Either --format '{{.ID}}' <names...>, or -f/--format <tmpl> <id>.
+        fmt=""
+        args=()
+        shift 2
+        while [ $# -gt 0 ]; do
+          case "$1" in
+            -f|--format) fmt="$2"; shift 2 ;;
+            *) args+=("$1"); shift ;;
+          esac
+        done
+        for target in "${args[@]}"; do
+          case "${fmt}" in
+            *'.ID'*)
+              # Resolving explicit service names back to ids (the -n option).
+              section_rows "$(current_round)" | awk -F'|' -v n="${target}" '$2 == n { print $1; exit }'
+              ;;
+            *'.Spec.Name'*)
+              lookup "${target}" 2
+              ;;
+            *'.UpdateStatus'*)
+              lookup "${target}" 3
+              ;;
+            *)
+              echo "stub: unhandled service inspect format '${fmt}'" >&2
+              exit 64
+              ;;
+          esac
+        done
+        ;;
+      ls)
+        # `docker service ls --format '{{.Replicas}}' --filter id=<id>`
+        id=""
+        for arg in "$@"; do
+          case "${arg}" in id=*) id="${arg#id=}" ;; esac
+        done
+        lookup "${id}" 4
+        ;;
+      logs)
+        echo "stub: log line"
+        ;;
+      scale)
+        echo "stub: scaled $*"
+        ;;
+      *)
+        echo "stub: unhandled 'docker service ${2:-}'" >&2
+        exit 64
+        ;;
+    esac
+    ;;
+
+  *)
+    echo "stub: unhandled 'docker ${*}'" >&2
+    exit 64
+    ;;
+esac

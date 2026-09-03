@@ -76,9 +76,19 @@ check_deploy() {
 scale_after() {
   if [[ -n "$SCALE_AFTER" ]]; then
     echo "Scaling services: $SCALE_AFTER"
+    # Unquoted on purpose: SCALE_AFTER may hold several "service=n" pairs,
+    # and `docker service scale` expects them as separate arguments.
+    # shellcheck disable=SC2086
     docker service scale $SCALE_AFTER
   fi
 }
+
+# Everything above is a function definition; everything below is the deploy
+# flow. Sourcing this script (as the test suite does) stops here, so the
+# functions can be exercised individually without running a deploy.
+if [ "${BASH_SOURCE[0]}" != "${0}" ]; then
+  return 0
+fi
 
 [ -z ${DEBUG+x} ] && export DEBUG="0"
 

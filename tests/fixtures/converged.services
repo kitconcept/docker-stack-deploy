@@ -1,0 +1,3 @@
+# Every service already settled: the wait loop should exit on its first poll.
+svc_backend|demo_backend|deployed|1/1
+svc_frontend|demo_frontend|completed|2/2

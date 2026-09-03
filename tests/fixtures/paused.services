@@ -1,0 +1,2 @@
+# A paused update can never converge on its own.
+svc_backend|demo_backend|paused|1/2

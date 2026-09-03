@@ -1,0 +1,6 @@
+# Issue #19: a service the stack file declares with `replicas: 0`, which an
+# external scheduler (swarm-cronjob) has since scaled to a target of 1.
+# Indistinguishable from issue #13 at the replicas field alone -- there is no
+# completion suffix here to disambiguate a finished run from a failed start.
+svc_dbpack|demo_dbpack|deployed|0/1
+svc_backend|demo_backend|deployed|1/1
