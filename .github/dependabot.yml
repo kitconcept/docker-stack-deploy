@@ -14,8 +14,11 @@ updates:
         patterns:
           - "*"
     # Must already exist in the repository, otherwise it is silently ignored.
+    # "skip changelog" is what exempts these pull requests from the changelog
+    # workflow, which dependabot has no way of satisfying itself.
     labels:
       - "dependencies"
+      - "skip changelog"
 
   - package-ecosystem: "docker"
     # Keeps the pinned base image in Dockerfile current.
@@ -27,3 +30,4 @@ updates:
       default-days: 7
     labels:
       - "dependencies"
+      - "skip changelog"

@@ -57,6 +57,13 @@ build-test-image:  # Build the bats test runner image
 test: build-test-image  # Run the bats test suite
 	docker run --rm -v "$(PWD)":/code -w /code $(TEST_RUNNER_IMAGE) tests/
 
+# Changelog
+.PHONY: draft-changelog
+draft-changelog: # Display the draft of the changelog
+	@uvx towncrier build --draft --version unreleased --config towncrier.toml
+
+# Release
+.PHONY: create-tag
 create-tag: # Create a new tag using git
 	@test -n "$(VERSION)"
 	if git show-ref --tags v$(VERSION) --quiet; \
@@ -65,6 +72,7 @@ create-tag: # Create a new tag using git
 	else \
 		echo "Creating new tag $(VERSION)"; \
 		sed -i 's/$(BASE_NAME):latest/$(BASE_NAME):$(VERSION)/' action.yml; \
+		uvx towncrier build --yes --version $(VERSION) --config towncrier.toml; \
 		git commit -am "Prepare release $(VERSION)"; \
 		git tag -a v$(VERSION) -m "Release $(VERSION)"; \
 		git push && git push --tags; \
