@@ -37,10 +37,90 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `prune` | `PRUNE` | Prune services that are not defined in the stack file | | **0** |
 | `stack_file` | `STACK_FILE` | Path to the stack file used in the deploy. | ✅ | |
 | `stack_name` | `STACK_NAME` | Name of the stack to be deployed. | ✅ | |
-| `stack_param` | `STACK_PARAM` | Additional parameter (env var) to be passed to the stack. | | |
-| `env_file` | `ENV_FILE` | Additional environment variables to be passed to the stack. | | |
+| `stack_param` | `STACK_PARAM` | A single additional value, available to the stack file as `${STACK_PARAM}`. Superseded by `env_file`, see [Passing values into the stack file](#passing-values-into-the-stack-file). | | |
+| `env_file` | `ENV_FILE` | Additional environment variables **as content**, one `VAR=VALUE` per line. Mutually exclusive with `env_file_path`. | | |
+| `env_file_path` | `ENV_FILE_PATH` | **Path** to a file of additional environment variables, one `VAR=VALUE` per line. Mutually exclusive with `env_file`. | | |
 | `debug` | `DEBUG` | Verbose logging | | **0** |
 | `scale_after` | `SCALE_AFTER` | Scale a service after a deployment has converged successfully. Example: servicename=1 | | |
+
+
+## Passing values into the stack file
+
+Your stack file can reference environment variables, and `docker stack deploy`
+substitutes them as it reads the file. This action gives you three ways to set
+those variables, all of which work through that same substitution.
+
+### `env_file` — the variables themselves
+
+Pass the content directly. Each line is a `VAR=VALUE` pair:
+
+```yaml
+      - name: Deploy
+        uses: kitconcept/docker-stack-deploy@v1.4.0
+        with:
+          # ...
+          env_file: |
+            BACKEND_REPLICAS=2
+            FRONTEND_REPLICAS=3
+            SOLR_JAVA_MEM=-Xms1536m -Xmx1536m
+```
+
+```yaml
+# stacks/plone.yml
+services:
+  backend:
+    deploy:
+      replicas: ${BACKEND_REPLICAS}
+  frontend:
+    deploy:
+      replicas: ${FRONTEND_REPLICAS}
+```
+
+Values are taken **verbatim**, matching `docker --env-file`: a value may
+contain spaces, and quotes around it become part of the value rather than
+being stripped. So `GREETING="hello"` sets `GREETING` to `"hello"`, quotes
+included.
+
+Lines that are blank or start with `#` are ignored. Anything else that is not
+`NAME=VALUE` is an error naming the offending line, rather than a silent
+failure to export.
+
+### `env_file_path` — a file to read them from
+
+If the variables already live in a file in your repository, point at it
+instead. Relative paths resolve against the workspace, the same as `stack_file`:
+
+```yaml
+        with:
+          # ...
+          env_file_path: "stacks/production.env"
+```
+
+The file format and the verbatim semantics are identical to `env_file`. The two
+inputs are mutually exclusive — supplying both is an error, because the
+precedence between them would otherwise be arbitrary.
+
+### `stack_param` — a single value (discouraged)
+
+`stack_param` sets one variable, always named `STACK_PARAM`:
+
+```yaml
+        with:
+          # ...
+          stack_param: "2"
+```
+
+```yaml
+# stacks/plone.yml
+services:
+  backend:
+    deploy:
+      replicas: ${STACK_PARAM}
+```
+
+It works, and it is kept for compatibility, but it is a one-variable special
+case of `env_file` with a name you cannot choose. Prefer `env_file` or
+`env_file_path` for anything new.
 
 
 ## Using the GitHub Action
@@ -66,10 +146,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codebase
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
 
       - name: Deploy
-        uses: kitconcept/docker-stack-deploy@v1.0.1
+        uses: kitconcept/docker-stack-deploy@v1.4.0
         with:
           remote_host: ${{ secrets.REMOTE_HOST }}
           remote_user: ${{ secrets.REMOTE_USER }}
@@ -96,10 +176,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout codebase
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
 
       - name: Deploy
-        uses: kitconcept/docker-stack-deploy@v1.0.1
+        uses: kitconcept/docker-stack-deploy@v1.4.0
         with:
           registry: "ghcr.io"
           username: ${{ secrets.GHCR_USERNAME }}
@@ -109,7 +189,6 @@ jobs:
           remote_private_key: ${{ secrets.REMOTE_PRIVATE_KEY }}
           stack_file: "stacks/plone.yml"
           stack_name: "plone-live"
-          stack_param: "foo"
 ```
 
 ## Using the Docker Image
