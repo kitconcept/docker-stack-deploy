@@ -1,1 +1,0 @@
-Added a bats test suite for the shell scripts, run in CI together with shellcheck. @ericof

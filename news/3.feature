@@ -1,1 +1,0 @@
-Added an `env_file_path` input, which reads the additional environment variables from a file instead of taking them as content. `env_file` keeps its current meaning, so nothing breaks; supplying both is an error. @ericof

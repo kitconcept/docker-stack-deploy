@@ -1,1 +1,0 @@
-Documented how values reach the stack file, with worked examples for `env_file`, `env_file_path` and `stack_param`, and noted that `stack_param` is a one-variable special case of `env_file`. @ericof
