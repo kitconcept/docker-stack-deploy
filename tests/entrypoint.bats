@@ -80,6 +80,115 @@ run_entrypoint() {
   [[ "$output" == *"Input stack_name is required!"* ]]
 }
 
+# --- input whitespace (issue #1) ----------------------------------------------
+
+# Source the script, run trim_inputs against a controlled environment, and
+# print the resulting value of one variable.
+#
+# The value is printed inside brackets on purpose: bats strips trailing
+# newlines from $output, so an untrimmed `host\n` would compare equal to `host`
+# and the assertion would pass whether the trimming happened or not.
+trim_and_print() {
+  local var="$1"
+  shift
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" WANT="${var}" "$@" \
+    bash -c "
+      source '${ENTRYPOINT}'
+      trim_inputs >/dev/null
+      printf '[%s]' \"\${!WANT}\"
+    "
+}
+
+@test "remote_host loses a trailing newline (issue #1)" {
+  trim_and_print REMOTE_HOST REMOTE_HOST=$'swarm.example.com\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[swarm.example.com]" ]
+}
+
+@test "remote_host loses whitespace in the middle of the value (issue #1)" {
+  trim_and_print REMOTE_HOST REMOTE_HOST='swarm .example.com'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[swarm.example.com]" ]
+}
+
+@test "remote_user is trimmed (issue #1)" {
+  trim_and_print REMOTE_USER REMOTE_USER=$'deploy\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[deploy]" ]
+}
+
+@test "remote_port is trimmed (issue #1)" {
+  trim_and_print REMOTE_PORT REMOTE_PORT=$' 2222\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[2222]" ]
+}
+
+@test "registry is trimmed (issue #1)" {
+  trim_and_print REGISTRY REGISTRY=$'ghcr.io\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[ghcr.io]" ]
+}
+
+@test "username is trimmed (issue #1)" {
+  trim_and_print USERNAME USERNAME=$'someone\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = "[someone]" ]
+}
+
+@test "trimming an input is reported on stdout (issue #1)" {
+  # The point of the issue: the mistake is invisible everywhere else, so the
+  # fix has to be visible without DEBUG.
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    REMOTE_HOST=$'swarm.example.com\n' \
+    bash -c "source '${ENTRYPOINT}'; trim_inputs"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Input remote_host: removed whitespace from the value"* ]]
+}
+
+@test "a clean input is left alone and reported silently (issue #1)" {
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    REMOTE_HOST=swarm.example.com REMOTE_USER=deploy REMOTE_PORT=22 \
+    bash -c "source '${ENTRYPOINT}'; trim_inputs"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
+@test "remote_private_key is never trimmed (issue #1)" {
+  # Newlines are structural in a PEM key. Counting them is what makes a
+  # regression here fail loudly instead of silently mangling the key.
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    REMOTE_PRIVATE_KEY=$'-----BEGIN-----\nabc\n-----END-----\n' \
+    bash -c "
+      source '${ENTRYPOINT}'
+      trim_inputs >/dev/null
+      printf '%s' \"\${REMOTE_PRIVATE_KEY}\" | wc -l
+    "
+  [ "$status" -eq 0 ]
+  [ "${output// /}" = "3" ]
+}
+
+@test "password is never trimmed (issue #1)" {
+  trim_and_print PASSWORD PASSWORD='tok en '
+  [ "$status" -eq 0 ]
+  [ "$output" = "[tok en ]" ]
+}
+
+@test "the trim runs as part of the deploy flow (issue #1)" {
+  # Every other test in this section calls trim_inputs directly; this one is
+  # what proves it is actually wired into the script's flow, and that it runs
+  # before the required-input checks.
+  run_entrypoint REMOTE_HOST=$'swarm.example.com\n'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Input remote_host: removed whitespace from the value"* ]]
+  [[ "$output" == *"Input remote_user is required!"* ]]
+}
+
+@test "a remote_host of only whitespace is reported as missing (issue #1)" {
+  run_entrypoint REMOTE_HOST=$'  \n'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Input remote_host is required!"* ]]
+}
+
 # --- container registry login -------------------------------------------------
 
 @test "skips login when no credentials are given (issue #4)" {

@@ -10,6 +10,29 @@ ENV_FILE_PATH="/root/.env"
 OPTS=("--with-registry-auth" "--resolve-image=${RESOLVE_IMAGE:-always}")
 [ "${PRUNE:-0}" = "1" ] && OPTS+=("--prune")
 
+# Inputs whose values cannot legally contain whitespace. A newline pasted into
+# a GitHub secret is invisible in the repository UI and only surfaces much
+# later, as an opaque `ssh: Could not resolve hostname`, so strip it here.
+#
+# REMOTE_PRIVATE_KEY and PASSWORD are deliberately NOT in this list, and must
+# not be added: newlines are structural in a PEM key, and whitespace can be a
+# legitimate part of a registry token.
+TRIMMED_INPUTS=(REGISTRY USERNAME REMOTE_HOST REMOTE_PORT REMOTE_USER)
+
+
+trim_inputs() {
+  local name original trimmed
+  for name in "${TRIMMED_INPUTS[@]}"; do
+    original="${!name-}"
+    trimmed="${original//[[:space:]]/}"
+    if [ "${trimmed}" != "${original}" ]; then
+      # Reported unconditionally, not only under DEBUG: the whole problem with
+      # this class of mistake is that it is invisible everywhere else.
+      echo "Input ${name,,}: removed whitespace from the value"
+      export "${name}=${trimmed}"
+    fi
+  done
+}
 
 login() {
   echo "${PASSWORD}" | docker login "${REGISTRY}" -u "${USERNAME}" --password-stdin
@@ -126,6 +149,12 @@ else
   OUT=/dev/null;
   SSH_VERBOSE=""
 fi
+
+# NORMALISE INPUTS
+# Runs before the first use of any of them, and before the required-input
+# checks below, so an input that is nothing but whitespace is reported as
+# missing rather than being passed on to ssh.
+trim_inputs
 
 # PROCEED WITH LOGIN
 if [ -z "${USERNAME}" ] || [ -z "${PASSWORD}" ]; then

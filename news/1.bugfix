@@ -1,0 +1,1 @@
+Fixed a stray newline or space in `remote_host` (or `registry`, `username`, `remote_port`, `remote_user`) breaking the deploy with an opaque `ssh: Could not resolve hostname`. Whitespace is now removed from those inputs, and the log says when it was. @ericof
