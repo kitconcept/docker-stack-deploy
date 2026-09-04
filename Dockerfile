@@ -1,4 +1,4 @@
-FROM docker:29.1.3-cli-alpine3.23
+FROM docker:29.5.3-cli-alpine3.23
 
 LABEL maintainer="kitconcept GmbH <info@kitconcept.com>" \
       org.label-schema.name="docker-stack-deploy" \
