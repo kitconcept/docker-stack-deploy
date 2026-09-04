@@ -42,6 +42,23 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `debug` | `DEBUG` | Verbose logging | | **0** |
 | `scale_after` | `SCALE_AFTER` | Scale a service after a deployment has converged successfully. Example: servicename=1 | | |
 
+### A note on whitespace
+
+`registry`, `username`, `remote_host`, `remote_port` and `remote_user` cannot
+contain whitespace, so any is removed before the value is used, and a line
+naming the input is written to the log when that happens:
+
+```
+Input remote_host: removed whitespace from the value
+```
+
+This exists because a stray newline in a GitHub secret is invisible in the
+repository UI, and used to surface much later as an opaque
+`ssh: Could not resolve hostname`.
+
+`remote_private_key` and `password` are left exactly as given — newlines are
+structural in a PEM key, and whitespace can be a legitimate part of a token.
+
 
 ## Using the GitHub Action
 
