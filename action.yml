@@ -52,7 +52,11 @@ inputs:
     required: false
     default: ""
   env_file:
-    description: "Additional environment variables in the format VAR_01=VALUE\nVAR_02=VALUE"
+    description: "Additional environment variables, as content, in the format VAR_01=VALUE\nVAR_02=VALUE. Mutually exclusive with env_file_path."
+    required: false
+    default: ""
+  env_file_path:
+    description: "Path to a file containing additional environment variables, one VAR=VALUE per line. Mutually exclusive with env_file."
     required: false
     default: ""
   debug:
@@ -80,5 +84,6 @@ runs:
     STACK_NAME: ${{ inputs.stack_name }}
     STACK_PARAM: ${{ inputs.stack_param }}
     ENV_FILE: ${{ inputs.env_file }}
+    ENV_FILE_PATH: ${{ inputs.env_file_path }}
     DEBUG: ${{ inputs.debug }}
     SCALE_AFTER: ${{ inputs.scale_after }}

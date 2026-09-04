@@ -5,7 +5,9 @@ set -e
 SSH_DIR="/root/.ssh"
 SSH_KEY="${SSH_DIR}/docker"
 KNOWN_HOSTS="${SSH_DIR}/known_hosts"
-ENV_FILE_PATH="/root/.env"
+# Where the `env_file` input's content is materialised before being parsed.
+# Distinct from the ENV_FILE_PATH input, which is a path supplied by the user.
+ENV_FILE_DEST="/root/.env"
 
 OPTS=("--with-registry-auth" "--resolve-image=${RESOLVE_IMAGE:-always}")
 [ "${PRUNE:-0}" = "1" ] && OPTS+=("--prune")
@@ -32,9 +34,10 @@ configure_ssh_key() {
   ssh-add "${SSH_KEY}"
 }
 
-configure_env_file() {
-  printf '%s' "$ENV_FILE" > "${ENV_FILE_PATH}"
-  env_file_len=$(grep -cv -e '^#' -e '^$' "${ENV_FILE_PATH}" || true)
+# Parse a NAME=VALUE file and export every entry. $1 is the file to read.
+load_env_file() {
+  local source_file="$1" env_file_len line
+  env_file_len=$(grep -cv -e '^#' -e '^$' "${source_file}" || true)
   if [[ ${env_file_len} -gt 0 ]]; then
     echo "Environment Variables: Additional values"
     if [ "${DEBUG}" != "0" ]; then
@@ -47,8 +50,9 @@ configure_env_file() {
     # Values are taken verbatim, matching `docker --env-file`: quotes in the
     # file are part of the value, not delimiters around it.
     #
-    # ENV_FILE has no trailing newline, so the `-n` test is what keeps the
-    # final line from being dropped by read's non-zero exit.
+    # The ENV_FILE input has no trailing newline, so the `-n` test is what
+    # keeps the final line from being dropped by read's non-zero exit. A file
+    # read through env_file_path usually does end in a newline; both work.
     while IFS= read -r line || [ -n "${line}" ]; do
       case "${line}" in
         ''|\#*) continue ;;
@@ -58,11 +62,30 @@ configure_env_file() {
         exit 1
       fi
       export "${line?}"
-    done < "${ENV_FILE_PATH}"
+    done < "${source_file}"
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars after: $(env|wc -l)"
     fi
   fi
+}
+
+# The env_file input carries the variables themselves, so materialise them
+# before parsing.
+configure_env_file() {
+  printf '%s' "$ENV_FILE" > "${ENV_FILE_DEST}"
+  load_env_file "${ENV_FILE_DEST}"
+}
+
+# The env_file_path input names a file to read instead. Relative paths resolve
+# against the workspace, which is the working directory of a docker action --
+# the same way the stack_file input works.
+configure_env_file_path() {
+  if [ ! -f "${ENV_FILE_PATH}" ]; then
+    echo "${ENV_FILE_PATH} does not exist."
+    exit 1
+  fi
+  echo "Environment Variables: Reading ${ENV_FILE_PATH}"
+  load_env_file "${ENV_FILE_PATH}"
 }
 
 configure_ssh_host() {
@@ -110,7 +133,16 @@ fi
 [ -z ${DEBUG+x} ] && export DEBUG="0"
 
 # ADDITIONAL ENV VARIABLES
-if [[ -z "${ENV_FILE}" ]]; then
+# env_file carries the variables themselves; env_file_path names a file to read
+# them from. Accepting both at once would leave the precedence undefined, so it
+# is rejected rather than guessed at.
+if [[ -n "${ENV_FILE}" ]] && [[ -n "${ENV_FILE_PATH}" ]]; then
+  echo "Inputs env_file and env_file_path are mutually exclusive!"
+  exit 1
+fi
+if [[ -n "${ENV_FILE_PATH}" ]]; then
+  configure_env_file_path;
+elif [[ -z "${ENV_FILE}" ]]; then
   export ENV_FILE=""
 else
   configure_env_file;
