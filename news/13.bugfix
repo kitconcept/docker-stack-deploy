@@ -1,0 +1,1 @@
+Fixed the deploy waiting until it timed out on a `mode: replicated-job` service that had already run to completion. @ericof

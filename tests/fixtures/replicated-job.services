@@ -1,0 +1,5 @@
+# Issue #13: a `mode: replicated-job` service that ran once and finished.
+# `docker service ls` reports the completion count in a suffix that
+# stack-wait.sh currently discards, leaving current(0) != target(1) forever.
+svc_migrate|demo_migrate|deployed|0/1 (1/1 completed)
+svc_backend|demo_backend|deployed|1/1

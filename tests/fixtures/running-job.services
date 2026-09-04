@@ -1,0 +1,6 @@
+# A replicated-job still on its first run, then finished.
+svc_migrate|demo_migrate|deployed|1/1 (0/1 completed)
+svc_backend|demo_backend|deployed|1/1
+---
+svc_migrate|demo_migrate|deployed|0/1 (1/1 completed)
+svc_backend|demo_backend|deployed|1/1

@@ -1,0 +1,33 @@
+version: 2
+updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # Check for updates to GitHub Actions every week
+      interval: "weekly"
+    # No `cooldown` here: it is not supported for the github-actions
+    # ecosystem, so the weekly interval is the only pacing available.
+    groups:
+      # One pull request for all action bumps, so CI validates them together.
+      github-actions:
+        patterns:
+          - "*"
+    # Must already exist in the repository, otherwise it is silently ignored.
+    # "skip changelog" is what exempts these pull requests from the changelog
+    # workflow, which dependabot has no way of satisfying itself.
+    labels:
+      - "dependencies"
+      - "skip changelog"
+
+  - package-ecosystem: "docker"
+    # Keeps the pinned base image in Dockerfile current.
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      # Supported for the docker ecosystem: ignore releases younger than this.
+      default-days: 7
+    labels:
+      - "dependencies"
+      - "skip changelog"

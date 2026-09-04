@@ -1,0 +1,48 @@
+name: "Changelog"
+on:
+  pull_request:
+    types: [assigned, opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+
+env:
+  base-branch: main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+
+  checks:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip changelog') }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Fetch all history
+          fetch-depth: '0'
+
+      - name: Setup uv
+        uses: plone/meta/.github/actions/setup_uv@2.x
+        with:
+          python-version: "3.14"
+          working-directory: '.'
+
+      - name: "Fetch base branch"
+        run: |
+          # Reference: https://github.com/actions/checkout/#fetch-all-branches.
+          git fetch --no-tags origin ${{ env.base-branch }}
+
+      - name: "Repository: Check"
+        id: repository-changelog
+        run: |
+          uvx towncrier check --compare-with origin/${{ env.base-branch }} --config ./towncrier.toml --dir ./
+
+      - name: "Report check"
+        if: ${{ always() }}
+        run: |
+          echo '# Workflow Report' >> $GITHUB_STEP_SUMMARY
+          echo '| Job ID | Conclusion |' >> $GITHUB_STEP_SUMMARY
+          echo '| --- | --- |' >> $GITHUB_STEP_SUMMARY
+          echo '| repository |${{ steps.repository-changelog.conclusion }} |' >> $GITHUB_STEP_SUMMARY

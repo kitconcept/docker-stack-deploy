@@ -5,3 +5,8 @@ Dockerfile
 docs
 Makefile
 README.md
+Dockerfile.test
+tests
+CHANGELOG.md
+news
+towncrier.toml
