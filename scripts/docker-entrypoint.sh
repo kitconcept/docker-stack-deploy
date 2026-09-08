@@ -218,7 +218,7 @@ if [[ -z "${REMOTE_USER}" ]]; then
   exit 1
 fi
 if [[ -z "${REMOTE_PRIVATE_KEY}" ]]; then
-  echo "Input private_key is required!"
+  echo "Input remote_private_key is required!"
   exit 1
 fi
 # CHECK STACK VARIABLES
