@@ -126,11 +126,13 @@ Scales a service to a specific number of replicas after a deployment has converg
 - name: Deploy
   uses: kitconcept/docker-stack-deploy@v1.5.0
   with:
-    scale_after: "frontend=3 backend=2"
+    stack_name: "mystack"
+    scale_after: "mystack_frontend=3 mystack_backend=2"
     # ... other inputs
 ```
 
-You can scale multiple services by separating them with spaces.
+The value is passed to `docker service scale`, so use the full Swarm service
+name, `<stack_name>_<service>`. Separate several services with spaces.
 
 
 ## Passing values into the stack file
@@ -322,7 +324,7 @@ Then edit your `.gitlab-ci.yml` to include the `deploy` step:
 image: busybox:latest
 
 services:
-  - docker:26-dind
+  - docker:29-dind
 
 before_script:
   - docker info
