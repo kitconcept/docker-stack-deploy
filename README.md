@@ -43,7 +43,7 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `debug` | `DEBUG` | Verbose logging | | **0** |
 | `scale_after` | `SCALE_AFTER` | Scale a service after a deployment has converged successfully. Example: servicename=1 | | |
 
-### A note on whitespace
+## A note on whitespace
 
 `registry`, `username`, `remote_host`, `remote_port` and `remote_user` cannot
 contain whitespace, so any is removed before the value is used, and a line
@@ -142,7 +142,7 @@ case of `env_file` with a name you cannot choose. Prefer `env_file` or
 
 ## Using the GitHub Action
 
-Add, or edit an existing, `yaml` file inside `.github/actions` and use the configuration options listed above.
+Add, or edit an existing, `yaml` file inside `.github/workflows` and use the configuration options listed above.
 
 ### Examples
 
@@ -219,7 +219,7 @@ It is possible to directly use the `ghcr.io/kitconcept/docker-stack-deploy` Dock
 Considering you have a local file named `.env_deploy` with content:
 
 ```
-REGISTRY=hub.docker.com
+REGISTRY=docker.io
 USERNAME=foo_usr
 PASSWORD=averylargepasswordortoken
 REMOTE_HOST=192.168.17.2
@@ -232,11 +232,11 @@ DEBUG=1
 
 Run the following command:
 ```shell
-docker run --rm
-  -v "$(pwd)":/github/workspace
-  -v /var/run/docker.sock:/var/run/docker.sock
-  --env-file=.env_deploy
-  -e REMOTE_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)"
+docker run --rm \
+  -v "$(pwd)":/github/workspace \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --env-file=.env_deploy \
+  -e REMOTE_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" \
   ghcr.io/kitconcept/docker-stack-deploy:latest
 ```
 
@@ -244,20 +244,20 @@ docker run --rm
 
 On your GitLab project, go to  `Settings -> CI/CD` and add the environment variables under **Variables**.
 
-Then edit your `.gitlab-cy.yml` to include the `deploy` step:
+Then edit your `.gitlab-ci.yml` to include the `deploy` step:
 
 ```yaml
 image: busybox:latest
 
 services:
-  - docker:20.10.16-dind
+  - docker:26-dind
 
 before_script:
   - docker info
 
 deploy:
   stage: deploy
-  varibles:
+  variables:
     REGISTRY: ${REGISTRY}
     USERNAME: ${REGISTRY_USER}
     PASSWORD: ${REGISTRY_PASSWORD}
