@@ -25,11 +25,11 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 
 | GitHub Action Input | Environment Variable | Summary | Required | Default Value |
 | --- | --- | --- | --- | --- |
-| `registry` | `REGISTRY` | Specify which container registry to login to. | |
+| `registry` | `REGISTRY` | Specify which container registry to login to. | | |
 | `username` | `USERNAME` | Container registry username. | | |
 | `password` | `PASSWORD` | Container registry password. | | |
 | `remote_host` | `REMOTE_HOST` | Hostname or address of the machine running the Docker Swarm manager node | ✅ | |
-| `remote_port` | `REMOTE_PORT` | SSH port to connect on the the machine running the Docker Swarm manager node. | | **22** |
+| `remote_port` | `REMOTE_PORT` | SSH port to connect on the machine running the Docker Swarm manager node. | | **22** |
 | `remote_user` | `REMOTE_USER` | User with SSH and Docker privileges on the machine running the Docker Swarm manager node. | ✅ | |
 | `remote_private_key` | `REMOTE_PRIVATE_KEY` | Private key used for ssh authentication. | ✅ | |
 | `deploy_timeout` | `DEPLOY_TIMEOUT` | Seconds, to wait until the deploy finishes | | **600** |
@@ -347,9 +347,10 @@ request that genuinely needs no entry can carry the `skip changelog` label.
 
 [![kitconcept GmbH](https://raw.githubusercontent.com/kitconcept/docker-stack-deploy/main/docs/kitconcept.png)](https://kitconcept.com)
 
-This repository also uses the `docker-stack-wait` script, available at [GitHub](https://github.com/sudo-bmitch/docker-stack-wait).
+This repository includes a maintained fork of the `docker-stack-wait` script, originally from [GitHub](https://github.com/sudo-bmitch/docker-stack-wait).
 
 The logo is based on [rocket icon](https://freeicons.io/seo/rocket-icon-24668#).
+
 ## License
 
 The project is licensed under [MIT License](./LICENSE)
