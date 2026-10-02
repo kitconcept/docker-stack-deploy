@@ -314,6 +314,70 @@ export_from_env_file() {
   [[ "$output" == *"is not in NAME=VALUE format"* ]]
 }
 
+# --- env_file CRLF handling (issue #28) -----------------------------------------------
+
+@test "env_file strips CRLF line endings from values (issue #28)" {
+  # GitHub's web form saves multi-line secrets as CRLF. Every line except the
+  # last ends in \r, which becomes part of the value unless stripped.
+  # Use $'...' syntax to embed literal CRLF in the string.
+  export_from_env_file $'DB_USER=plone\r\nDB_PORT=5432\r\n' DB_USER
+  [ "$status" -eq 0 ]
+  [ "$output" = "plone" ]
+}
+
+@test "env_file strips CRLF from multiple values without corruption (issue #28)" {
+  export_from_env_file $'DB_USER=admin\r\nDB_PASS=secret\r\nDB_HOST=localhost\r\n' DB_PASS
+  [ "$status" -eq 0 ]
+  [ "$output" = "secret" ]
+}
+
+@test "env_file reports stripped carriage returns (issue #28)" {
+  # Like trim_inputs, the fix must report on stdout so the user sees the issue.
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    ENV_FILE=$'DB_USER=plone\r\n' \
+    bash -c "
+      source '${ENTRYPOINT}'
+      ENV_FILE_DEST=\"\${HOME}/.env\"
+      configure_env_file
+    "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Environment Variables: removed carriage returns from 1 line"* ]]
+}
+
+@test "env_file counts multiple CRLF strips in the report (issue #28)" {
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    ENV_FILE=$'DB_USER=admin\r\nDB_PASS=secret\r\nDB_HOST=localhost\r\n' \
+    bash -c "
+      source '${ENTRYPOINT}'
+      ENV_FILE_DEST=\"\${HOME}/.env\"
+      configure_env_file
+    "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Environment Variables: removed carriage returns from 3 lines"* ]]
+}
+
+@test "env_file with LF-only lines does not report carriage returns (issue #28)" {
+  # Verify the fix doesn't report when there are no CR chars to strip.
+  export_from_env_file $'DB_USER=plone\nDB_PORT=5432' DB_USER
+  [ "$status" -eq 0 ]
+  [[ ! "$output" =~ "carriage returns" ]]
+}
+
+@test "env_file with blank lines after CRLF stripping does not abort (issue #28)" {
+  # If a line only contained \r, after stripping it becomes empty and should
+  # be skipped gracefully without aborting.
+  export_from_env_file $'DB_USER=admin\r\n\r\nDB_PASS=secret\r\n' DB_USER
+  [ "$status" -eq 0 ]
+  [ "$output" = "admin" ]
+}
+
+@test "env_file with CRLF comment lines skips them correctly (issue #28)" {
+  # Comments ending in CR should still be recognized and skipped.
+  export_from_env_file $'# config\r\nDB_USER=plone\r\n' DB_USER
+  [ "$status" -eq 0 ]
+  [ "$output" = "plone" ]
+}
+
 # --- env_file_path (issue #3) -------------------------------------------------
 
 # Write a file with the given content, run configure_env_file_path against it,
@@ -423,6 +487,49 @@ export_from_env_file_path() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"Environment Variables: Additional values"* ]]
   [[ "$output" == *"Input remote_host is required!"* ]]
+}
+
+# --- env_file_path CRLF handling (issue #28) -------------------------------------------------
+
+@test "env_file_path strips CRLF line endings from values (issue #28)" {
+  # Files edited in Windows or via GitHub's web form may have CRLF line endings.
+  local file="${BATS_TEST_TMPDIR}/crlf.env"
+  printf '%s' "$(printf 'DB_USER=admin\r\nDB_HOST=localhost\r\n')" > "${file}"
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    ENV_FILE_PATH="${file}" WANT=DB_USER \
+    bash -c "
+      source '${ENTRYPOINT}'
+      configure_env_file_path >/dev/null 2>&1
+      printf '[%s]' \"\${!WANT}\"
+    "
+  [ "$status" -eq 0 ]
+  [ "$output" = "[admin]" ]
+}
+
+@test "env_file_path reports stripped carriage returns (issue #28)" {
+  local file="${BATS_TEST_TMPDIR}/crlf.env"
+  printf '%s' "$(printf 'DB_USER=admin\r\nDB_PASS=secret\r\n')" > "${file}"
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    ENV_FILE_PATH="${file}" \
+    bash -c "
+      source '${ENTRYPOINT}'
+      configure_env_file_path
+    "
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Environment Variables: removed carriage returns from 2 lines"* ]]
+}
+
+@test "env_file_path with LF-only lines does not report carriage returns (issue #28)" {
+  local file="${BATS_TEST_TMPDIR}/lf.env"
+  printf '%s\n' "DB_USER=admin" > "${file}"
+  run env -i PATH="${PATH}" HOME="${BATS_TEST_TMPDIR}" \
+    ENV_FILE_PATH="${file}" \
+    bash -c "
+      source '${ENTRYPOINT}'
+      configure_env_file_path
+    "
+  [ "$status" -eq 0 ]
+  [[ ! "$output" =~ "carriage returns" ]]
 }
 
 # --- scale_after --------------------------------------------------------------
