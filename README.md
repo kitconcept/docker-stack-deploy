@@ -21,6 +21,17 @@
 GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 
 
+## Prerequisites
+
+To use this action or Docker image, you need the following:
+
+- A Docker Swarm manager node reachable over SSH from the GitHub runner or Docker host
+- SSH credentials: the private key corresponding to a user account on the Swarm manager node
+- The user account must have Docker privileges (typically membership in the `docker` group)
+- A stack file (docker-compose YAML format) available in the repository or generated during the workflow
+- For private container images: credentials for the container registry where the images are hosted
+
+
 ## Configuration options
 
 | GitHub Action Input | Environment Variable | Summary | Required | Default Value |
@@ -59,6 +70,67 @@ repository UI, and used to surface much later as an opaque
 
 `remote_private_key` and `password` are left exactly as given — newlines are
 structural in a PEM key, and whitespace can be a legitimate part of a token.
+
+
+## Optional Parameters
+
+### Registry Authentication
+
+Container registry authentication is skipped when either `username` or `password` is not provided. This is useful when deploying public images that do not require credentials.
+
+### `deploy_timeout`
+
+Specifies the number of seconds to wait for a deployment to converge. The default is 600 seconds (10 minutes). The action polls the remote Docker Swarm manager via SSH to check deployment status using the `docker-stack-wait` script.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    deploy_timeout: "1200"
+    # ... other inputs
+```
+
+### `resolve_image`
+
+Controls whether the action queries the container registry to resolve image digests and supported platforms before deployment. Supported values are:
+
+- `always` (default): Always resolve image metadata
+- `changed`: Only resolve for images that have changed since the last deployment
+- `never`: Skip image resolution
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    resolve_image: "changed"
+    # ... other inputs
+```
+
+### `prune`
+
+When set to `1`, services that are not defined in the stack file are removed from the Swarm. The default is `0` (disabled). Use with caution on shared Swarms.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    prune: "1"
+    # ... other inputs
+```
+
+### `scale_after`
+
+Scales a service to a specific number of replicas after a deployment has converged successfully. Useful when you want to adjust replica counts after initial deployment.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    scale_after: "frontend=3 backend=2"
+    # ... other inputs
+```
+
+You can scale multiple services by separating them with spaces.
 
 
 ## Passing values into the stack file
