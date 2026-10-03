@@ -21,15 +21,26 @@
 GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 
 
+## Prerequisites
+
+To use this action or Docker image, you need the following:
+
+- A Docker Swarm manager node reachable over SSH from the GitHub runner or Docker host
+- SSH credentials: the private key corresponding to a user account on the Swarm manager node
+- The user account must have Docker privileges (typically membership in the `docker` group)
+- A stack file (docker-compose YAML format) available in the repository or generated during the workflow
+- For private container images: credentials for the container registry where the images are hosted
+
+
 ## Configuration options
 
 | GitHub Action Input | Environment Variable | Summary | Required | Default Value |
 | --- | --- | --- | --- | --- |
-| `registry` | `REGISTRY` | Specify which container registry to login to. | |
+| `registry` | `REGISTRY` | Specify which container registry to login to. | | |
 | `username` | `USERNAME` | Container registry username. | | |
 | `password` | `PASSWORD` | Container registry password. | | |
 | `remote_host` | `REMOTE_HOST` | Hostname or address of the machine running the Docker Swarm manager node | ✅ | |
-| `remote_port` | `REMOTE_PORT` | SSH port to connect on the the machine running the Docker Swarm manager node. | | **22** |
+| `remote_port` | `REMOTE_PORT` | SSH port to connect on the machine running the Docker Swarm manager node. | | **22** |
 | `remote_user` | `REMOTE_USER` | User with SSH and Docker privileges on the machine running the Docker Swarm manager node. | ✅ | |
 | `remote_private_key` | `REMOTE_PRIVATE_KEY` | Private key used for ssh authentication. | ✅ | |
 | `deploy_timeout` | `DEPLOY_TIMEOUT` | Seconds, to wait until the deploy finishes | | **600** |
@@ -43,7 +54,7 @@ GitHub Action and Docker image used to deploy a Docker stack on a Docker Swarm.
 | `debug` | `DEBUG` | Verbose logging | | **0** |
 | `scale_after` | `SCALE_AFTER` | Scale a service after a deployment has converged successfully. Example: servicename=1 | | |
 
-### A note on whitespace
+## A note on whitespace
 
 `registry`, `username`, `remote_host`, `remote_port` and `remote_user` cannot
 contain whitespace, so any is removed before the value is used, and a line
@@ -59,6 +70,69 @@ repository UI, and used to surface much later as an opaque
 
 `remote_private_key` and `password` are left exactly as given — newlines are
 structural in a PEM key, and whitespace can be a legitimate part of a token.
+
+
+## Optional Parameters
+
+### Registry Authentication
+
+Container registry authentication is skipped when either `username` or `password` is not provided. This is useful when deploying public images that do not require credentials.
+
+### `deploy_timeout`
+
+Specifies the number of seconds to wait for a deployment to converge. The default is 600 seconds (10 minutes). The action polls the remote Docker Swarm manager via SSH to check deployment status using the `docker-stack-wait` script.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    deploy_timeout: "1200"
+    # ... other inputs
+```
+
+### `resolve_image`
+
+Controls whether the action queries the container registry to resolve image digests and supported platforms before deployment. Supported values are:
+
+- `always` (default): Always resolve image metadata
+- `changed`: Only resolve for images that have changed since the last deployment
+- `never`: Skip image resolution
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    resolve_image: "changed"
+    # ... other inputs
+```
+
+### `prune`
+
+When set to `1`, services that are not defined in the stack file are removed from the Swarm. The default is `0` (disabled). Use with caution on shared Swarms.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    prune: "1"
+    # ... other inputs
+```
+
+### `scale_after`
+
+Scales a service to a specific number of replicas after a deployment has converged successfully. Useful when you want to adjust replica counts after initial deployment.
+
+```yaml
+- name: Deploy
+  uses: kitconcept/docker-stack-deploy@v1.5.0
+  with:
+    stack_name: "mystack"
+    scale_after: "mystack_frontend=3 mystack_backend=2"
+    # ... other inputs
+```
+
+The value is passed to `docker service scale`, so use the full Swarm service
+name, `<stack_name>_<service>`. Separate several services with spaces.
 
 
 ## Passing values into the stack file
@@ -142,7 +216,7 @@ case of `env_file` with a name you cannot choose. Prefer `env_file` or
 
 ## Using the GitHub Action
 
-Add, or edit an existing, `yaml` file inside `.github/actions` and use the configuration options listed above.
+Add, or edit an existing, `yaml` file inside `.github/workflows` and use the configuration options listed above.
 
 ### Examples
 
@@ -219,7 +293,7 @@ It is possible to directly use the `ghcr.io/kitconcept/docker-stack-deploy` Dock
 Considering you have a local file named `.env_deploy` with content:
 
 ```
-REGISTRY=hub.docker.com
+REGISTRY=docker.io
 USERNAME=foo_usr
 PASSWORD=averylargepasswordortoken
 REMOTE_HOST=192.168.17.2
@@ -232,11 +306,11 @@ DEBUG=1
 
 Run the following command:
 ```shell
-docker run --rm
-  -v "$(pwd)":/github/workspace
-  -v /var/run/docker.sock:/var/run/docker.sock
-  --env-file=.env_deploy
-  -e REMOTE_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)"
+docker run --rm \
+  -v "$(pwd)":/github/workspace \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --env-file=.env_deploy \
+  -e REMOTE_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" \
   ghcr.io/kitconcept/docker-stack-deploy:latest
 ```
 
@@ -244,20 +318,20 @@ docker run --rm
 
 On your GitLab project, go to  `Settings -> CI/CD` and add the environment variables under **Variables**.
 
-Then edit your `.gitlab-cy.yml` to include the `deploy` step:
+Then edit your `.gitlab-ci.yml` to include the `deploy` step:
 
 ```yaml
 image: busybox:latest
 
 services:
-  - docker:20.10.16-dind
+  - docker:29-dind
 
 before_script:
   - docker info
 
 deploy:
   stage: deploy
-  varibles:
+  variables:
     REGISTRY: ${REGISTRY}
     USERNAME: ${REGISTRY_USER}
     PASSWORD: ${REGISTRY_PASSWORD}
@@ -347,9 +421,10 @@ request that genuinely needs no entry can carry the `skip changelog` label.
 
 [![kitconcept GmbH](https://raw.githubusercontent.com/kitconcept/docker-stack-deploy/main/docs/kitconcept.png)](https://kitconcept.com)
 
-This repository also uses the `docker-stack-wait` script, available at [GitHub](https://github.com/sudo-bmitch/docker-stack-wait).
+This repository includes a maintained fork of the `docker-stack-wait` script, originally from [GitHub](https://github.com/sudo-bmitch/docker-stack-wait).
 
 The logo is based on [rocket icon](https://freeicons.io/seo/rocket-icon-24668#).
+
 ## License
 
 The project is licensed under [MIT License](./LICENSE)
