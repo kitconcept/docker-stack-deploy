@@ -59,7 +59,7 @@ configure_ssh_key() {
 
 # Parse a NAME=VALUE file and export every entry. $1 is the file to read.
 load_env_file() {
-  local source_file="$1" env_file_len line
+  local source_file="$1" env_file_len line cr_lines=0
   env_file_len=$(grep -cv -e '^#' -e '^$' "${source_file}" || true)
   if [[ ${env_file_len} -gt 0 ]]; then
     echo "Environment Variables: Additional values"
@@ -73,10 +73,17 @@ load_env_file() {
     # Values are taken verbatim, matching `docker --env-file`: quotes in the
     # file are part of the value, not delimiters around it.
     #
-    # The ENV_FILE input has no trailing newline, so the `-n` test is what
-    # keeps the final line from being dropped by read's non-zero exit. A file
-    # read through env_file_path usually does end in a newline; both work.
+    # Strip trailing carriage returns from CRLF line endings (GitHub's web form
+    # stores multi-line secrets with CRLF). The ENV_FILE input has no trailing
+    # newline, so the `-n` test is what keeps the final line from being dropped
+    # by read's non-zero exit. A file read through env_file_path usually does
+    # end in a newline; both work.
     while IFS= read -r line || [ -n "${line}" ]; do
+      # Remove trailing \r if present (from CRLF line endings)
+      if [[ "${line}" == *$'\r' ]]; then
+        line="${line%$'\r'}"
+        ((++cr_lines))
+      fi
       case "${line}" in
         ''|\#*) continue ;;
       esac
@@ -86,6 +93,15 @@ load_env_file() {
       fi
       export "${line?}"
     done < "${source_file}"
+    if [ ${cr_lines} -gt 0 ]; then
+      # Reported unconditionally, not only under DEBUG: the whole problem with
+      # CRLF is that it is invisible everywhere else.
+      if [ ${cr_lines} -eq 1 ]; then
+        echo "Environment Variables: removed carriage returns from 1 line"
+      else
+        echo "Environment Variables: removed carriage returns from ${cr_lines} lines"
+      fi
+    fi
     if [ "${DEBUG}" != "0" ]; then
       echo "Environment vars after: $(env|wc -l)"
     fi

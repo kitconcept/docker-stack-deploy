@@ -1,0 +1,1 @@
+Strip CRLF line endings from environment variable values, which GitHub's web form stores when editing multi-line secrets. Values are reported as processed.
