@@ -55,7 +55,7 @@ run_entrypoint() {
 @test "remote_private_key is required" {
   run_entrypoint REMOTE_HOST=swarm.example.com REMOTE_USER=deploy
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Input private_key is required!"* ]]
+  [[ "$output" == *"Input remote_private_key is required!"* ]]
 }
 
 @test "stack_file is required" {
