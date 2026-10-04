@@ -8,6 +8,18 @@
 
 <!-- towncrier release notes start -->
 
+## 1.6.0 (2026-10-04)
+
+
+### Bugfix
+
+- Strip CRLF line endings from environment variable values, which GitHub's web form stores when editing multi-line secrets. Values are reported as processed. [#28](https://github.com/kitconcept/docker-stack-deploy/issues/28)
+
+
+### Documentation
+
+- Improved README with clearer instructions, fixed broken examples, and added comprehensive documentation for optional parameters and prerequisites. 
+
 ## 1.5.0 (2026-09-04)
 
 
